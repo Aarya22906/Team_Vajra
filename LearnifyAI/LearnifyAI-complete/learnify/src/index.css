@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 230 100% 57%;             /* #2346FF */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 30% 96%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 228 100% 97%;
+    --accent-foreground: 230 100% 45%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 88%;
+    --ring: 230 100% 57%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222 44% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 44% 11%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 229 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 243 40% 20%;
+    --accent-foreground: 226 100% 90%;
+    --destructive: 0 63% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 18%;
+    --input: 217 33% 22%;
+    --ring: 229 100% 68%;
+  }
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-background text-foreground antialiased; font-feature-settings: "cv11", "ss01"; }
+  h1, h2 { letter-spacing: -0.025em; }
+  ::selection { @apply bg-primary/20; }
+}
+
+@layer components {
+  .gradient-text { @apply bg-brand-gradient bg-clip-text text-transparent; }
+  .card-hover { @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift; }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-muted; }
+  .skeleton::after { content: ""; @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-white/5; animation: shimmer 1.4s infinite; }
+  .scrollbar-thin { scrollbar-width: thin; }
+}
+
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Grid children default to min-width:auto, which lets wide content (code, slide strips) stretch the page on small screens. */
+@layer base {
+  .grid > * { min-width: 0; }
+}
+
+/* Landing page (CodeLaunch template) */
+.hero-title { font-size: clamp(2.5rem, 6vw, 5.1rem); font-weight: 800; line-height: 0.98; letter-spacing: -0.055em; }
+.hl { background: linear-gradient(transparent 58%, #DCE3FF 58%, #DCE3FF 92%, transparent 92%); }
+.dark .hl { background: linear-gradient(transparent 58%, rgb(35 70 255 / .35) 58%, rgb(35 70 255 / .35) 92%, transparent 92%); }
+.strike { position: relative; color: hsl(var(--muted-foreground)); }
+.strike::after { content: ""; position: absolute; left: -2%; right: -2%; top: 56%; height: .09em; background: #F0603A; border-radius: 2px; }

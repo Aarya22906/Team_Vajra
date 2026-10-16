@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
 # LearnifyAI · Verified Course Material Studio
@@ -545,3 +546,7 @@ MIT © 2026 LearnifyAI contributors. See `LICENSE`.
 **LearnifyAI** treats the model as an author and the compiler as the editor.
 
 </div>
+=======
+
+Project development progress updated.
+>>>>>>> 4d08d22 (docs: update project development progress)
