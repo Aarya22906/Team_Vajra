@@ -1,13 +1,13 @@
 import * as React from 'react';
-import type { CourseContent } from './api';
+import { BASE, type CourseContent } from './api';
 import { courses as seedCourses, currentUser, notifications as seedNotifications, type Course } from './mock-data';
 
 type Theme = 'light' | 'dark';
-interface User { name: string; email: string; initials: string; role: string; institute: string; firstName: string }
+interface User { name: string; email: string; initials: string; role: string; institute: string; firstName: string; avatar?: string; provider?: string }
 
 interface Store {
   user: User | null;
-  login: (email: string, remember: boolean) => void;
+  login: (email: string, remember: boolean, profile?: Partial<User>) => void;
   logout: () => void;
   theme: Theme;
   toggleTheme: () => void;
@@ -46,10 +46,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: Store = {
     user,
-    login: (email, remember) => {
-      const u = { ...currentUser, email: email || currentUser.email };
+    login: (email, remember, profile) => {
+      const emailVal = email || currentUser.email;
+      const localPart = emailVal.split('@')[0] || '';
+      const rawName = localPart
+        .split(/[._-]/)
+        .filter(Boolean)
+        .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+        .join(' ');
+      const name = profile?.name || (rawName.length > 1 ? rawName : currentUser.name);
+      const initials = profile?.initials || name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase() || 'U';
+      const institute = profile?.institute || (emailVal.includes('@') ? (emailVal.endsWith('@gmail.com') ? 'Google Workspace' : emailVal.split('@')[1]) : currentUser.institute);
+      const u: User = {
+        name,
+        email: emailVal,
+        initials,
+        role: profile?.role || 'Trainer',
+        institute,
+        firstName: name.split(' ')[0],
+        ...profile
+      };
       setUser(u);
       if (remember) write('learnify-auth', u); else { try { sessionStorage.setItem('learnify-session', JSON.stringify(u)); } catch { /* ignore */ } }
+
+      // Persist login to backend database
+      fetch(BASE + '/api/auth/record-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailVal,
+          name: u.name,
+          avatar: u.avatar,
+          provider: profile?.provider || (emailVal.includes('@gmail.com') ? 'google' : 'email'),
+          role: u.role,
+          institute: u.institute
+        })
+      }).catch(err => console.warn('Could not sync login to database:', err));
     },
     logout: () => { setUser(null); try { localStorage.removeItem('learnify-auth'); sessionStorage.removeItem('learnify-session'); } catch { /* ignore */ } },
     theme,

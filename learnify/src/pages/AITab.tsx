@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { api, useApi } from '@/lib/api';
+import { api, BASE, useApi } from '@/lib/api';
 
 export function AITab() {
   const { health, online, refresh } = useApi();
@@ -55,9 +55,9 @@ export function AITab() {
             {[['Total records', k?.total], ['Seed (sample course)', k?.seed], ['Verified by runs', k?.verified], ['Your material', k?.corpus]].map(([l, v]) => <div key={l as string} className="rounded-xl border p-3"><div className="text-xl font-bold">{v ?? '—'}</div><div className="text-xs text-muted-foreground">{l}</div></div>)}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild><a href="/api/dataset?format=chat"><Download /> Fine-tuning set (chat JSONL)</a></Button>
-            <Button variant="outline" size="sm" asChild><a href="/api/dataset?format=chat&verified=1"><Download /> Verified only</a></Button>
-            <Button variant="outline" size="sm" asChild><a href="/api/dataset?format=raw"><Download /> Raw records</a></Button>
+            <Button variant="outline" size="sm" asChild><a href={`${BASE}/api/dataset?format=chat`}><Download /> Fine-tuning set (chat JSONL)</a></Button>
+            <Button variant="outline" size="sm" asChild><a href={`${BASE}/api/dataset?format=chat&verified=1`}><Download /> Verified only</a></Button>
+            <Button variant="outline" size="sm" asChild><a href={`${BASE}/api/dataset?format=raw`}><Download /> Raw records</a></Button>
             <Button variant="ghost" size="sm" onClick={() => refresh()}><RefreshCw /> Refresh</Button>
           </div>
         </CardContent>

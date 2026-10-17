@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/misc';
 import { PageHeader } from '@/components/shared/common';
 import { exportFormats, exportHistory, layoutChecks } from '@/lib/mock-data';
+import { mockContent } from '@/lib/content';
 import { useStore } from '@/lib/store';
 import { cn, sleep, timeAgo } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ export default function Exports() {
   const exportable = courses.filter(c => c.status === 'verified' || c.status === 'review');
   const [courseId, setCourseId] = React.useState(params.get('course') ?? exportable.find(c => contents[c.id]?.live)?.id ?? exportable[0]?.id ?? 'java-oop');
   const course = courses.find(c => c.id === courseId) ?? courses[0];
+  const content = React.useMemo(() => contents[course.id] ?? mockContent(course.title, course.level, course.durationMin, course.runtime, course.language), [contents, course]);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [done, setDone] = React.useState<string[]>([]);
   const [pkgOpen, setPkgOpen] = React.useState(false);
@@ -34,39 +36,61 @@ export default function Exports() {
   const [pkgReady, setPkgReady] = React.useState<null | (() => Promise<void>)>(null);
   const [history, setHistory] = React.useState(exportHistory);
 
-  const download = async (id: string, label: string, ext: string, size: string) => {
+  const download = async (id: string, label: string, _ext?: string, _size?: string) => {
     setBusy(id);
-    const content = contents[course.id];
     try {
-      if (content?.live && online) {
+      if (online) {
         const name = await api.download(id, { course, content });
         toast.success(`${label} downloaded`, { description: name });
+        setDone(d => [...new Set([...d, id])]);
       } else {
-        await sleep(900);
-        toast.success(`${label} downloaded`, { description: `${course.id}-v${course.version}.${ext.toLowerCase()} · ${size} (sample: generate a live course for a real file)` });
+        toast.error(`Cannot export ${label}`, { description: 'Backend server is offline. Please start the local server.' });
       }
-      setDone(d => [...new Set([...d, id])]);
-    } catch (e) { toast.error(`Could not export ${label}`, { description: e instanceof Error ? e.message : undefined }); }
+    } catch (e) {
+      toast.error(`Could not export ${label}`, { description: e instanceof Error ? e.message : undefined });
+    }
     setBusy(null);
   };
 
   const PKG_STEPS = ['Rendering slides', 'Embedding fonts', 'Bundling code & tests', 'Validating layout', 'Compressing package'];
   const exportAll = async () => {
-    setPkgOpen(true); setPkgPct(0); setPkgStep(0); setPkgReady(null);
-    const content = contents[course.id];
-    if (content?.live && online) {
-      const t = setInterval(() => setPkgPct(p => Math.min(90, p + 6)), 300);
-      try { setPkgReady(() => async () => { await api.download('package', { course, content }); }); } finally { clearInterval(t); }
-      setPkgStep(PKG_STEPS.length); setPkgPct(100);
-      setHistory(h => [{ id: 'ex' + Date.now(), course: course.title, version: `v${course.version}`, format: 'Full package', size: '—', date: new Date().toISOString() }, ...h]);
-      return;
-    }
-    for (let i = 0; i < PKG_STEPS.length; i++) {
+    setPkgOpen(true);
+    setPkgPct(15);
+    setPkgStep(0);
+    setPkgReady(null);
+
+    // Smoothly progress through preparation steps
+    for (let i = 0; i < PKG_STEPS.length - 1; i++) {
       setPkgStep(i);
-      for (let k = 0; k < 5; k++) { await sleep(110); setPkgPct(p => Math.min(100, p + 4)); }
+      setPkgPct((i + 1) * 20);
+      await sleep(150);
     }
-    setPkgStep(PKG_STEPS.length); setPkgPct(100);
-    setHistory(h => [{ id: 'ex' + Date.now(), course: course.title, version: `v${course.version}`, format: 'Full package', size: '8.3 MB', date: new Date().toISOString() }, ...h]);
+    setPkgStep(PKG_STEPS.length - 1);
+    setPkgPct(90);
+
+    const downloadPackage = async () => {
+      await api.download('package', { course, content });
+    };
+
+    setPkgReady(() => downloadPackage);
+
+    try {
+      if (online) {
+        await downloadPackage();
+        setPkgStep(PKG_STEPS.length);
+        setPkgPct(100);
+        toast.success('Package downloaded', { description: 'All 8 files bundled into one ZIP' });
+        setHistory(h => [{ id: 'ex' + Date.now(), course: course.title, version: `v${course.version}`, format: 'Full package', size: 'ZIP bundle', date: new Date().toISOString() }, ...h]);
+      } else {
+        setPkgStep(PKG_STEPS.length);
+        setPkgPct(100);
+        toast.error('Export failed', { description: 'API server is offline' });
+      }
+    } catch (e) {
+      setPkgStep(PKG_STEPS.length);
+      setPkgPct(100);
+      toast.error('Export failed', { description: e instanceof Error ? e.message : undefined });
+    }
   };
 
   return (
@@ -140,7 +164,18 @@ export default function Exports() {
                 <TD>{h.format}</TD>
                 <TD className="hidden text-muted-foreground sm:table-cell">{h.size}</TD>
                 <TD className="whitespace-nowrap text-muted-foreground">{timeAgo(h.date)}</TD>
-                <TD className="text-right"><Button variant="ghost" size="sm" onClick={() => toast.success(`Re-downloaded ${h.course} ${h.version}`, { description: `${h.format} · ${h.size}` })}><RotateCw /> Re-download</Button></TD>
+                <TD className="text-right">
+                  <Button variant="ghost" size="sm" onClick={async () => {
+                    try {
+                      await api.download('package', { course, content });
+                      toast.success(`Re-downloaded ${h.course} ${h.version}`);
+                    } catch (e) {
+                      toast.error('Download failed', { description: e instanceof Error ? e.message : undefined });
+                    }
+                  }}>
+                    <RotateCw /> Re-download
+                  </Button>
+                </TD>
               </TR>
             ))}
           </TBody>
@@ -164,7 +199,21 @@ export default function Exports() {
           {pkgPct >= 100 && (
             <DialogFooter>
               <Button variant="outline" onClick={() => setPkgOpen(false)}>Close</Button>
-              <Button variant="gradient" onClick={async () => { try { if (pkgReady) { await pkgReady(); toast.success('Package downloaded', { description: 'All 8 files in one ZIP' }); } else toast.success('Package downloaded', { description: `${course.id}-v${course.version}-full.zip · 8.3 MB (sample)` }); setPkgOpen(false); } catch (e) { toast.error('Export failed', { description: e instanceof Error ? e.message : undefined }); } }}><Download /> {pkgReady ? 'Download ZIP' : 'Download ZIP (8.3 MB)'}</Button>
+              <Button variant="gradient" onClick={async () => {
+                try {
+                  if (pkgReady) {
+                    await pkgReady();
+                  } else {
+                    await api.download('package', { course, content });
+                  }
+                  toast.success('Package downloaded', { description: 'All 8 files in one ZIP' });
+                  setPkgOpen(false);
+                } catch (e) {
+                  toast.error('Export failed', { description: e instanceof Error ? e.message : undefined });
+                }
+              }}>
+                <Download /> Download ZIP
+              </Button>
             </DialogFooter>
           )}
         </DialogContent>

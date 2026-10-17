@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { AuthLayout, GoogleIcon } from '@/components/layout/AuthLayout';
+import { GoogleSignInModal } from '@/components/auth/GoogleSignInModal';
+import { loginWithGoogle } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +32,9 @@ export default function Login() {
   const [show, setShow] = React.useState(false);
   const [remember, setRemember] = React.useState(true);
   const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
-  const [loading, setLoading] = React.useState<'form' | 'google' | null>(null);
+  const [loading, setLoading] = React.useState<'form' | null>(null);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+  const [googleModal, setGoogleModal] = React.useState(false);
 
   React.useEffect(() => { if (user) navigate('/dashboard', { replace: true }); }, [user, navigate]);
 
@@ -44,22 +48,37 @@ export default function Login() {
     return !Object.keys(e).length;
   };
 
+  const handleGoogleClick = async () => {
+    setGoogleLoading(true);
+    try {
+      const res = await loginWithGoogle();
+      if (res.ok) {
+        login(res.user.email, true, { name: res.user.name, avatar: res.user.avatar });
+        toast.success(`Welcome, ${res.user.name}`, { description: 'Signed in with Google' });
+        navigate(loc.state?.from ?? '/dashboard', { replace: true });
+        return;
+      }
+      if (res.code === 'auth/popup-closed-by-user') {
+        return;
+      }
+      toast.error(res.error || 'Google sign-in was not completed');
+      setGoogleModal(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Google sign-in error');
+      setGoogleModal(true);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
     setLoading('form');
-    await sleep(900);
+    await sleep(700);
     login(email, remember);
-    toast.success('Welcome back, Aarav', { description: 'Signed in to TechSummit Institute' });
+    toast.success(`Welcome back, ${email.split('@')[0]}`);
     navigate(loc.state?.from ?? '/dashboard', { replace: true });
-  };
-
-  const google = async () => {
-    setLoading('google');
-    await sleep(900);
-    login('aarav.mehta@techsummit.edu', true);
-    toast.success('Signed in with Google');
-    navigate('/dashboard', { replace: true });
   };
 
   return (
@@ -67,10 +86,27 @@ export default function Login() {
       <h2 className="text-[28px] font-bold tracking-tight">Welcome back</h2>
       <p className="mt-1.5 text-sm text-muted-foreground">Sign in to your trainer workspace.</p>
 
-      <Button type="button" variant="outline" size="lg" className="mt-8 w-full text-sm" onClick={google} loading={loading === 'google'} disabled={!!loading}>
-        {loading !== 'google' && <GoogleIcon className="h-[18px] w-[18px]" />} Continue with Google
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="mt-8 w-full text-sm"
+        onClick={handleGoogleClick}
+        loading={googleLoading}
+        disabled={googleLoading || !!loading}
+      >
+        {!googleLoading && <GoogleIcon className="h-[18px] w-[18px]" />} Continue with Google
       </Button>
       <Divider>or with email</Divider>
+
+      <GoogleSignInModal
+        open={googleModal}
+        onOpenChange={setGoogleModal}
+        onSuccess={(gEmail, gName, gAvatar) => {
+          login(gEmail, true, { name: gName, avatar: gAvatar });
+          navigate(loc.state?.from ?? '/dashboard', { replace: true });
+        }}
+      />
 
       <form onSubmit={submit} noValidate className="space-y-4">
         <div>

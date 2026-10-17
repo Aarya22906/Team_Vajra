@@ -107,12 +107,15 @@ export const notifications = [
 
 /* ---------------- Studio content (Java OOP Fundamentals) ---------------- */
 
-export type SlideLayout = 'title' | 'bullets' | 'code' | 'diagram' | 'two-col' | 'summary';
+export type SlideLayout = 'title' | 'bullets' | 'code' | 'diagram' | 'two-col' | 'grid' | 'timeline' | 'callout' | 'summary';
 export interface Slide {
   id: string;
   title: string;
+  subtitle?: string;
   layout: SlideLayout;
   bullets: string[];
+  takeaway?: string;
+  badge?: string;
   code?: string;
   lang?: string;
   diagramId?: string;
@@ -123,18 +126,204 @@ export interface Slide {
 }
 
 export const javaSlides: Slide[] = [
-  { id: 's1', title: 'Java OOP Fundamentals', layout: 'title', bullets: ['Beginner · 90 minutes · Java 21'], notes: 'Welcome everyone. Today we model a small banking app with classes and objects. Ask: who has used a banking app this week? We will build its core in Java.', status: 'none' },
-  { id: 's2', title: 'Why object-oriented?', layout: 'bullets', bullets: ['Group data with the behaviour that uses it', 'Hide details behind a clear interface', 'Reuse through composition and inheritance', 'Model the real world: accounts, customers, cards'], notes: 'Contrast a procedural script with scattered balance variables against a BankAccount object. Ask what goes wrong when 3 parts of the code all change the balance directly.', status: 'none' },
-  { id: 's3', title: 'Classes and objects', layout: 'code', bullets: ['A class is a blueprint', 'new creates an object', 'Each object has its own state'], code: 'public class Main {\n    public static void main(String[] args) {\n        Account a = new Account("Asha", 500);\n        Account b = new Account("Ravi", 120);\n        System.out.println(a.owner() + ": " + a.balance());\n        System.out.println(b.owner() + ": " + b.balance());\n    }\n}', lang: 'java', notes: 'Run this live. Point out that a and b are independent: changing one never changes the other. Common mistake: confusing the class name with a variable.', status: 'passed' },
-  { id: 's4', title: 'Encapsulation', layout: 'code', bullets: ['Fields are private', 'Methods guard the rules', 'Invalid states become impossible'], code: 'public class BankAccount {\n    private double balance;\n\n    public void deposit(double amount) {\n        if (amount <= 0) throw new IllegalArgumentException("Amount must be positive");\n        balance += amount;\n    }\n\n    public double getBalance() { return balance; }\n}', lang: 'java', notes: 'Ask the room: why not just make balance public? Show that deposit(-50) is now rejected. This is the heart of encapsulation.', status: 'passed' },
-  { id: 's5', title: 'Constructors', layout: 'code', bullets: ['Run once when an object is created', 'Validate the starting state', 'Overload for convenience'], code: 'public BankAccount(String owner, double opening) {\n    if (opening < 0) throw new IllegalArgumentException();\n    this.owner = owner;\n    this.balance = opening;\n}\n\npublic BankAccount(String owner) {\n    this(owner, 0);\n}', lang: 'java', notes: 'Show constructor chaining with this(...). Mention that Java adds a default constructor only when you write none.', status: 'passed' },
-  { id: 's6', title: 'Inheritance', layout: 'diagram', bullets: ['SavingsAccount is a BankAccount', 'Reuse, then specialise', 'Prefer composition when unsure'], diagramId: 'd1', notes: 'Walk the hierarchy top-down. Ask: is a CurrentAccount a SavingsAccount? No, so they are siblings. Warn against deep inheritance trees.', status: 'none' },
-  { id: 's7', title: 'Withdrawing safely', layout: 'code', bullets: ['Check before you change state', 'Return a clear message', 'Tested with JUnit 5'], code: 'public String withdraw(double amount) {\n    if (amount > balance) {\n        return "Insufficient funds";\n    }\n    balance -= amount;\n    return "OK";\n}', lang: 'java', notes: 'This snippet was auto-fixed during verification: the first draft threw an exception instead of returning the message the slide promised. The report shows both attempts.', status: 'passed' },
-  { id: 's8', title: 'Polymorphism', layout: 'code', bullets: ['One call, many behaviours', 'Decided at runtime', 'Override with @Override'], code: 'List<BankAccount> accounts = List.of(\n    new SavingsAccount("Asha", 1000),\n    new CurrentAccount("Ravi", 300)\n);\nfor (BankAccount acc : accounts) {\n    System.out.println(acc.monthlyFee());\n}', lang: 'java', notes: 'Each account type answers monthlyFee() differently. Ask learners to predict the output before running.', status: 'passed' },
-  { id: 's9', title: 'Interfaces', layout: 'code', bullets: ['A contract without state', 'A class can implement many', 'Great for testing'], code: 'public interface Notifier {\n    void send(String message);\n}\n\npublic class SmsNotifier implements Notifier {\n    public void send(String message) {\n        System.out.println("SMS: " + message);\n    }\n}', lang: 'java', notes: 'Show how BankAccount can depend on Notifier rather than SmsNotifier, then swap in an EmailNotifier.', status: 'passed' },
-  { id: 's10', title: 'Records in Java 21', layout: 'code', bullets: ['Immutable data carriers', 'equals, hashCode, toString for free', 'Pattern matching ready'], code: 'public record Transaction(String id, double amount) {}\n\nvar t = new Transaction("T-1001", 250.0);\nSystem.out.println(t);\n// Transaction[id=T-1001, amount=250.0]', lang: 'java', notes: 'Records arrived in Java 16. Combine with pattern matching for switch (Java 21) in the advanced session.', status: 'passed' },
-  { id: 's11', title: 'Abstract class vs interface', layout: 'two-col', bullets: ['Abstract class', 'Can hold state', 'Single inheritance', 'Interface', 'No instance state', 'Implement many'], notes: 'Rule of thumb: start with an interface; reach for an abstract class when subclasses share real state.', status: 'none' },
-  { id: 's12', title: 'Recap', layout: 'summary', bullets: ['Classes bundle state and behaviour', 'Encapsulation protects the rules', 'Inheritance and interfaces enable reuse', 'Records model plain data'], notes: 'Ask three learners to explain one bullet each. Hand out the cheat sheet.', status: 'none' },
+  {
+    id: 's1',
+    title: 'Java OOP Fundamentals & Modern Architecture',
+    subtitle: 'From Primitive Classes to Virtual Threads & Record Patterns in Java 21 LTS',
+    layout: 'title',
+    badge: 'Java 21 LTS',
+    bullets: ['Comprehensive Course · 90 minutes · Production-Grade Best Practices'],
+    notes: 'Welcome everyone. Today we move beyond toy syntax into building production-grade domain models in modern Java. We will model a high-throughput banking system step-by-step.',
+    status: 'none'
+  },
+  {
+    id: 's2',
+    title: 'The Four Pillars of Object-Oriented Design',
+    subtitle: 'Structuring Complex Systems for High Maintainability and Long-Term Scalability',
+    layout: 'grid',
+    badge: 'Core Architecture',
+    bullets: [
+      'Encapsulation: Shielding internal state behind strict invariant-guarding methods',
+      'Abstraction: Exposing clear contracts while decoupling consumers from volatile implementation details',
+      'Inheritance: Modeling structural is-a relationships with controlled polymorphism and sealed hierarchies',
+      'Polymorphism: Dynamically dispatching runtime behavior to cleanly eliminate brittle if-else ladders'
+    ],
+    takeaway: 'Pro Tip: Favor composition over inheritance unless an unconditional is-a relationship exists.',
+    notes: 'Contrast a procedural monolithic script that mutates global balance variables with an isolated domain model. Show how encapsulation prevents concurrent corruption.',
+    status: 'none'
+  },
+  {
+    id: 's3',
+    title: 'Classes, Objects & Heap Memory Allocation',
+    subtitle: 'Blueprint Declaration vs Heap Instantiation & Reference Pointer Semantics',
+    layout: 'code',
+    badge: 'Memory Model',
+    bullets: [
+      'A class acts as an immutable blueprint compiled into JVM bytecode',
+      'The "new" operator allocates distinct object memory on the Java Heap',
+      'Variables store memory references (pointers); mutations affect only the targeted instance'
+    ],
+    takeaway: 'Memory Note: Each object instance carries an object header (Mark Word + Klass Word) of 12-16 bytes.',
+    code: 'public class Main {\n    public static void main(String[] args) {\n        // Independent heap allocations\n        Account a = new Account("Asha", 500.0);\n        Account b = new Account("Ravi", 120.0);\n        \n        System.out.println(a.owner() + ": " + a.balance());\n        System.out.println(b.owner() + ": " + b.balance());\n    }\n}',
+    lang: 'java',
+    notes: 'Run this live. Emphasize that reference variables a and b point to distinct heap addresses. Illustrate stack frame pointers pointing to heap instances.',
+    status: 'passed'
+  },
+  {
+    id: 's4',
+    title: 'Data Encapsulation & Guarding Invariants',
+    subtitle: 'Protecting Domain Integrity by Eliminating Illegal State Transitions',
+    layout: 'code',
+    badge: 'Domain Security',
+    bullets: [
+      'Private fields guarantee that outside callers cannot arbitrarily overwrite state',
+      'Public mutators validate preconditions (e.g. amount > 0, overdraft boundaries)',
+      'Invalid states become physically impossible to construct or persist'
+    ],
+    takeaway: 'Defensive Rule: Never expose mutable collection references—always return unmodifiable views.',
+    code: 'public class BankAccount {\n    private double balance; // Protected internal state\n\n    public void deposit(double amount) {\n        if (amount <= 0) {\n            throw new IllegalArgumentException("Deposit amount must be strictly positive");\n        }\n        this.balance += amount;\n    }\n\n    public double getBalance() { return balance; }\n}',
+    lang: 'java',
+    notes: 'Challenge the class: What happens if balance were public? An inexperienced developer could assign balance = -50000. Encapsulation is your first line of defense.',
+    status: 'passed'
+  },
+  {
+    id: 's5',
+    title: 'Constructors, Overloading & Constructor Chaining',
+    subtitle: 'Guaranteed Object Initialization & Safe Parameter Validation',
+    layout: 'code',
+    badge: 'Initialization',
+    bullets: [
+      'Constructors run once at instantiation to ensure an object begins in a valid state',
+      'Overloaded constructors provide ergonomic call sites for common default parameters',
+      'Constructor chaining with this(...) eliminates duplicate validation logic'
+    ],
+    takeaway: 'Best Practice: Keep initialization logic in one canonical constructor; delegate all others to it.',
+    code: 'public class BankAccount {\n    private final String owner;\n    private double balance;\n\n    // Canonical Constructor\n    public BankAccount(String owner, double opening) {\n        if (opening < 0) throw new IllegalArgumentException("Opening balance cannot be negative");\n        this.owner = Objects.requireNonNull(owner, "Owner required");\n        this.balance = opening;\n    }\n\n    // Overloaded convenience constructor\n    public BankAccount(String owner) {\n        this(owner, 0.0);\n    }\n}',
+    lang: 'java',
+    notes: 'Highlight how this(...) prevents copying and pasting validation rules. Mention that once you declare any constructor, the compiler default no-arg constructor is removed.',
+    status: 'passed'
+  },
+  {
+    id: 's6',
+    title: 'Domain Lifecycle & State Transitions',
+    subtitle: 'The Standard Execution Pipeline of a Production Banking Domain Object',
+    layout: 'timeline',
+    badge: 'Lifecycle',
+    bullets: [
+      '1. Allocation & Validation: Constructor parses inputs and verifies invariants',
+      '2. Transaction Execution: Business logic validates funds and computes state transitions',
+      '3. Audit Logging: Notifications and ledger events dispatched asynchronously',
+      '4. Garbage Collection: Mark-and-sweep reclaims unreferenced heap allocations'
+    ],
+    takeaway: 'Key Takeaway: Design objects with clean lifecycles to prevent resource leaks and dangling state.',
+    notes: 'Walk students through the 4 stages. Ask what happens if an exception is thrown in stage 2: does stage 3 execute? Show how transactional boundaries work.',
+    status: 'none'
+  },
+  {
+    id: 's7',
+    title: 'Defensive Programming: Withdrawing Safely',
+    subtitle: 'Verifying Invariants with Comprehensive JUnit 5 Test Coverage',
+    layout: 'code',
+    badge: 'Quality & Testing',
+    bullets: [
+      'Check preconditions before state mutation to ensure idempotency',
+      'Distinguish business rule rejections from fatal programming errors',
+      'Fully verified with automated unit tests covering all boundary conditions'
+    ],
+    takeaway: 'Testing Rule: Always write automated test cases for exact balance boundary conditions (amount == balance).',
+    code: 'public String withdraw(double amount) {\n    if (amount <= 0) {\n        throw new IllegalArgumentException("Withdrawal must be positive");\n    }\n    if (amount > balance) {\n        return "Insufficient funds";\n    }\n    this.balance -= amount;\n    return "OK";\n}',
+    lang: 'java',
+    notes: 'Show how this snippet was tested and auto-verified. Highlight the boundary condition where withdrawal equals exact balance.',
+    status: 'passed'
+  },
+  {
+    id: 's8',
+    title: 'Dynamic Polymorphism in Action',
+    subtitle: 'Decoupling Consumers from Concrete Subclasses at Runtime',
+    layout: 'code',
+    badge: 'Polymorphism',
+    bullets: [
+      'One unified interface call, diverse runtime execution behaviors',
+      'Eliminates fragile switch statements and manual instanceof checks',
+      'Annotate overrides with @Override to enforce compiler verification'
+    ],
+    takeaway: 'Clean Code: Open-Closed Principle (OCP)—Open for extension, closed for modification.',
+    code: 'List<BankAccount> accounts = List.of(\n    new SavingsAccount("Asha", 1000.0, 0.04),\n    new CurrentAccount("Ravi", 300.0, 500.0)\n);\n\n// Single polymorphic loop\nfor (BankAccount acc : accounts) {\n    System.out.println(acc.owner() + " Fee: " + acc.monthlyFee());\n}',
+    lang: 'java',
+    notes: 'Demonstrate dynamic dispatch: the JVM looks up the vtable (virtual method table) of the concrete instance to invoke the right method at runtime.',
+    status: 'passed'
+  },
+  {
+    id: 's9',
+    title: 'Interface Segregation & Decoupled Contracts',
+    subtitle: 'Building Flexible Systems with Plug-and-Play Implementations',
+    layout: 'code',
+    badge: 'Design Patterns',
+    bullets: [
+      'Interfaces define what an object can do, not how it does it',
+      'Classes can implement multiple interfaces without diamond inheritance conflicts',
+      'Enables painless test mocking with Mockito in integration tests'
+    ],
+    takeaway: 'Architecture Rule: Program to an interface, not to a concrete implementation.',
+    code: 'public interface Notifier {\n    void send(String recipient, String message);\n}\n\npublic class SmsNotifier implements Notifier {\n    public void send(String to, String msg) {\n        System.out.println("SMS -> " + to + ": " + msg);\n    }\n}\n\n// In unit tests, easily substitute a MockNotifier without touching BankAccount!',
+    lang: 'java',
+    notes: 'Show how BankAccount can depend on Notifier rather than concrete SmsNotifier. Demonstrate swapping SMS for Email or Kafka event publisher.',
+    status: 'passed'
+  },
+  {
+    id: 's10',
+    title: 'Modern Java 21 Records & Pattern Matching',
+    subtitle: 'Transparent Carriers for Immutable Data with Pattern Matching Support',
+    layout: 'code',
+    badge: 'Java 21 Feature',
+    bullets: [
+      'Immutable data carriers with zero boilerplate (equals, hashCode, toString)',
+      'Deconstruction in pattern matching switch statements for deep type safety',
+      'Compact constructors allow concise data normalization and invariant validation'
+    ],
+    takeaway: 'Syntax Pro-Tip: Use records for DTOs, value objects, API payloads, and query projection results.',
+    code: 'public record Transaction(String id, double amount, Instant timestamp) {\n    // Compact constructor for validation\n    public Transaction {\n        if (amount == 0) throw new IllegalArgumentException("Amount cannot be 0");\n    }\n}\n\nvar tx = new Transaction("TX-9901", 450.0, Instant.now());\nSystem.out.println(tx); // Transaction[id=TX-9901, amount=450.0, timestamp=...]',
+    lang: 'java',
+    notes: 'Compare the 2 lines of record definition against the 50 lines of traditional Java bean code. Show how records fit into modern cloud microservices.',
+    status: 'passed'
+  },
+  {
+    id: 's11',
+    title: 'Architectural Comparison: Abstract Class vs Interface',
+    subtitle: 'Clear Decision Criteria for Enterprise Domain Hierarchy Design',
+    layout: 'two-col',
+    badge: 'Architecture',
+    bullets: [
+      'Abstract Class (Is-A)',
+      'Can encapsulate internal state (private instance fields)',
+      'Provides common code sharing across tightly coupled siblings',
+      'Restricted to single inheritance per class',
+      'Interface (Can-Do)',
+      'Pure behavioral contract without instance state',
+      'Any class can implement multiple independent interfaces',
+      'Can provide default utility methods without breaking implementors'
+    ],
+    takeaway: 'Decision Matrix: Use an interface to define capabilities; use an abstract class only when sharing non-static state.',
+    notes: 'A common interview trap: When do you pick an abstract class over an interface? Walk through this decision tree.',
+    status: 'none'
+  },
+  {
+    id: 's12',
+    title: 'Core Architecture Takeaway & Golden Rules',
+    subtitle: 'The Essential Principles of Scalable, Production-Ready Java Applications',
+    layout: 'callout',
+    badge: 'Golden Rule',
+    bullets: [
+      '"Design your classes so that illegal states are unrepresentable, data is immutable by default, and components communicate through narrow interfaces."',
+      '1. Encapsulate all mutable state behind strict invariants',
+      '2. Favor composition and interfaces over deep inheritance trees',
+      '3. Use Records for immutable data transfer and modern pattern matching',
+      '4. Protect system boundaries with comprehensive automated test suites'
+    ],
+    takeaway: 'Mastering these fundamentals ensures clean, maintainable, and bug-resistant enterprise systems.',
+    notes: 'Conclude the lecture. Invite questions from the room. Hand out the cheat sheet and review the exercise solutions.',
+    status: 'none'
+  }
 ];
 
 export const diagrams = [
@@ -188,13 +377,163 @@ export const exercises = [
   },
 ];
 
-export const quiz = [
-  { q: 'Which keyword creates a new object?', options: ['class', 'new', 'this', 'static'], answer: 1, explanation: 'new allocates the object and runs its constructor. class only declares the blueprint.' },
-  { q: 'Why should balance be private?', options: ['It makes the code faster', 'So only methods can enforce the rules', 'Java requires it', 'To save memory'], answer: 1, explanation: 'Encapsulation keeps invalid states impossible: every change has to go through deposit/withdraw, which check the rules.' },
-  { q: 'What does a record give you automatically?', options: ['Setters', 'A public no-arg constructor', 'equals, hashCode and toString', 'Inheritance from Object only'], answer: 2, explanation: 'Records generate accessors, equals, hashCode and toString. They are immutable, so there are no setters.' },
-  { q: 'A class can implement how many interfaces?', options: ['Exactly one', 'At most two', 'Any number', 'None if it extends a class'], answer: 2, explanation: 'Java allows a single superclass but any number of interfaces.' },
-  { q: 'acc.monthlyFee() calls the subclass version at runtime. This is…', options: ['Overloading', 'Polymorphism', 'Encapsulation', 'Composition'], answer: 1, explanation: 'Dynamic dispatch picks the overriding method of the actual object: polymorphism. Overloading is chosen at compile time by parameter types.' },
-  { q: 'What does this(owner, 0) do inside a constructor?', options: ['Creates a second object', 'Calls another constructor of the same class', 'Calls the superclass constructor', 'Returns the object'], answer: 1, explanation: 'this(...) chains to another constructor in the same class; super(...) calls the parent constructor.' },
+export interface QuizQuestion {
+  q: string;
+  code?: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+  category?: string;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+}
+
+export const quiz: QuizQuestion[] = [
+  {
+    q: 'Which keyword allocates memory and creates a new instance of an object in Java?',
+    options: ['class', 'new', 'this', 'static'],
+    answer: 1,
+    explanation: 'The "new" operator dynamically allocates memory on the heap for an object and invokes its constructor. The "class" keyword only defines the blueprint.',
+    category: 'Core OOP',
+    difficulty: 'Beginner'
+  },
+  {
+    q: 'Why should the internal state (such as account balance) be marked private with public mutating methods?',
+    options: ['Private fields are automatically cached in CPU L1 cache', 'It enforces encapsulation so state transitions can be strictly validated and invariants protected', 'Java requires private fields for serialization', 'It prevents garbage collection'],
+    answer: 1,
+    explanation: 'Encapsulation guarantees data integrity. By keeping fields private, callers cannot directly set illegal states (e.g. balance = -9999). Every change must pass through validated business methods.',
+    category: 'Encapsulation',
+    difficulty: 'Beginner'
+  },
+  {
+    q: 'What boilerplate code does a Java Record automatically eliminate?',
+    options: ['Setters and mutable field modifiers', 'Canonical constructor, private final fields, accessor methods, equals(), hashCode(), and toString()', 'Database connection pools and ORM queries', 'HTTP controller endpoints'],
+    answer: 1,
+    explanation: 'Records (introduced in Java 16) are transparent carriers for immutable data. They synthesize private final fields, a canonical constructor, accessors matching field names, equals(), hashCode(), and toString().',
+    category: 'Modern Java',
+    difficulty: 'Beginner'
+  },
+  {
+    q: 'What is the maximum number of interfaces a single Java class can implement?',
+    options: ['Exactly one', 'At most two', 'Unlimited (any number of interfaces)', 'None if the class extends another class'],
+    answer: 2,
+    explanation: 'Java supports single inheritance for classes (extends at most one superclass) but multiple inheritance of type via interfaces (implements any number of interfaces).',
+    category: 'Interfaces',
+    difficulty: 'Beginner'
+  },
+  {
+    q: 'When acc.monthlyFee() calls the subclass implementation decided at runtime, which OOP principle is active?',
+    options: ['Method Overloading (static dispatch)', 'Dynamic Polymorphism (virtual method invocation)', 'Data Encapsulation', 'Prototypal Inheritance'],
+    answer: 1,
+    explanation: 'Polymorphism allows objects of different subclasses to respond to the same method invocation in their own specific way via dynamic dispatch at runtime.',
+    category: 'Polymorphism',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'What occurs when this(owner, 0) is invoked on the first line of an overloaded constructor?',
+    options: ['It instantiates a second independent object', 'It delegates initialization to another constructor within the same class (constructor chaining)', 'It invokes the superclass constructor', 'It triggers garbage collection on the current object'],
+    answer: 1,
+    explanation: 'this(...) delegates initialization to another constructor in the same class. In contrast, super(...) delegates to the parent class constructor.',
+    category: 'Constructors',
+    difficulty: 'Beginner'
+  },
+  {
+    q: 'Consider this snippet. What will be printed when executed?',
+    code: 'record Point(int x, int y) {}\nPoint p1 = new Point(10, 20);\nPoint p2 = new Point(10, 20);\nSystem.out.println((p1 == p2) + " " + p1.equals(p2));',
+    options: ['true true', 'false true', 'false false', 'true false'],
+    answer: 1,
+    explanation: 'p1 == p2 checks reference equality (pointing to different heap addresses = false). p1.equals(p2) checks structural field equality, which records automatically implement based on component values = true.',
+    category: 'Modern Java',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'What is the primary architectural advantage of Java 21 Virtual Threads over OS Platform Threads?',
+    options: ['Virtual threads execute bytecode faster on the CPU', 'Virtual threads are lightweight user-mode threads (~few KB) that unmount during blocking I/O, enabling millions of concurrent tasks', 'Virtual threads eliminate the need for thread safety', 'Virtual threads share the same call stack'],
+    answer: 1,
+    explanation: 'Virtual threads (Project Loom in Java 21) are managed by the JVM runtime rather than 1:1 OS kernel threads. When a virtual thread blocks on socket/file I/O, it unmounts from its carrier thread, allowing the carrier thread to serve other requests.',
+    category: 'Concurrency',
+    difficulty: 'Advanced'
+  },
+  {
+    q: 'What problem does the try-with-resources statement solve in Java?',
+    options: ['It catches unhandled OutOfMemoryErrors', 'It automatically closes AutoCloseable resources even if an exception occurs, preventing resource leaks', 'It runs code concurrently in a separate thread', 'It optimizes JIT compiler loop unrolling'],
+    answer: 1,
+    explanation: 'try-with-resources guarantees that every resource declared in the try(...) clause implementing java.lang.AutoCloseable is closed automatically when leaving the block, even if exceptions are thrown.',
+    category: 'Clean Code',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'In the following snippet, what does the compiler report?',
+    code: 'List<String> names = new ArrayList<>();\nnames.add("Alice");\nList<?> wildcard = names;\nwildcard.add("Bob");',
+    options: ['Compiles and adds "Bob" to the list', 'Compilation Error: The method add(capture# of ?) is not applicable for String', 'Runtime ClassCastException thrown', 'List becomes immutable'],
+    answer: 1,
+    explanation: 'List<?> represents a list of an unknown type. Because the compiler cannot verify the specific type safety at compile time, you cannot add any elements (except null) to a wildcard collection.',
+    category: 'Generics',
+    difficulty: 'Advanced'
+  },
+  {
+    q: 'What is the difference between a Shallow Copy and a Deep Copy of an object?',
+    options: ['Shallow copy only copies primitives and duplicates object references; Deep copy recursively creates new copies of referenced objects', 'Shallow copies are stored on the stack; Deep copies on the heap', 'Shallow copy uses clone(); Deep copy uses serialization only', 'There is no difference in modern Java'],
+    answer: 0,
+    explanation: 'A shallow copy duplicates the immediate field values (including references to nested objects). If a nested object is mutated, both copies reflect the change. A deep copy recursively clones all child objects.',
+    category: 'Memory & Architecture',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'Which Java Stream operation is stateful and requires inspecting all elements before producing output?',
+    options: ['map()', 'filter()', 'sorted()', 'peek()'],
+    answer: 2,
+    explanation: 'sorted() is a stateful intermediate operation that must consume and buffer the entire stream before it can yield the first sorted element. In contrast, map and filter are stateless and process elements lazily one by one.',
+    category: 'Streams & Functional',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'Why is String immutable in Java?',
+    options: ['For thread-safety, security in classloading/networking, and enabling String Constant Pool memory caching', 'To prevent String from being garbage collected', 'Because Java does not support array resizing', 'Because primitive chars are immutable'],
+    answer: 0,
+    explanation: 'Immutability enables the String Constant Pool (deduplicating identical strings in memory), ensures thread safety across concurrent operations without locking, and prevents malicious modification of critical parameters like file paths and URLs.',
+    category: 'Memory & Architecture',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'What is the purpose of the volatile keyword in Java multithreading?',
+    options: ['It guarantees atomic increment operations (count++)', 'It guarantees visibility of variable updates across CPU thread caches without using mutex locks', 'It serializes the variable to disk', 'It prevents the variable from being initialized to null'],
+    answer: 1,
+    explanation: 'volatile ensures that reads and writes to a variable bypass thread-local CPU L1/L2 caches and interact directly with main memory, providing happens-before visibility guarantees without locking overhead.',
+    category: 'Concurrency',
+    difficulty: 'Advanced'
+  },
+  {
+    q: 'In Spring Boot, what is the default scope of a declared @Component or @Service bean?',
+    options: ['Prototype (new instance created per injection point)', 'Singleton (single shared instance cached in the ApplicationContext)', 'Request (one instance per HTTP request)', 'Session (one instance per user session)'],
+    answer: 1,
+    explanation: 'Spring beans default to Singleton scope, meaning the Spring IoC container creates and manages a single shared instance per ApplicationContext.',
+    category: 'Spring Framework',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'What occurs when an unhandled Checked Exception is thrown from a Java method?',
+    options: ['The JVM ignores it and continues execution', 'The code fails to compile unless declared in a throws clause or handled in a try-catch block', 'It is converted into a NullPointerException', 'The compiler automatically retries the method'],
+    answer: 1,
+    explanation: 'Checked exceptions (subclasses of Exception excluding RuntimeException) are checked at compile time. The compiler mandates that methods either catch them or explicitly declare them using the "throws" keyword.',
+    category: 'Exception Handling',
+    difficulty: 'Beginner'
+  },
+  {
+    q: 'What is the time complexity of looking up a key in a well-distributed Java HashMap?',
+    options: ['O(N)', 'O(log N)', 'O(1) amortized', 'O(N^2)'],
+    answer: 2,
+    explanation: 'HashMap calculates the bucket index via key.hashCode() in O(1) time. With low collision probability, lookup is O(1) amortized. In case of high collisions, Java 8+ converts buckets with >8 nodes into balanced red-black trees with O(log N) worst-case lookup.',
+    category: 'Collections & Data Structures',
+    difficulty: 'Intermediate'
+  },
+  {
+    q: 'Which design pattern is implemented when an object publishes notifications to registered listeners without knowing their concrete classes?',
+    options: ['Singleton Pattern', 'Observer Pattern', 'Factory Method Pattern', 'Adapter Pattern'],
+    answer: 1,
+    explanation: 'The Observer pattern defines a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically in a decoupled manner.',
+    category: 'Design Patterns',
+    difficulty: 'Intermediate'
+  }
 ];
 
 export const cheatSheet = [

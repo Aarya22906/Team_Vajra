@@ -4,8 +4,12 @@ import './env.js';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export function providers() {
-  const order = (process.env.LLM_PROVIDER || 'groq,ollama').split(',').map(s => s.trim());
-  return order.filter(p => (p === 'groq' && process.env.GROQ_API_KEY) || (p === 'ollama' && process.env.OLLAMA_API_KEY));
+  const order = (process.env.LLM_PROVIDER || 'groq,gemini,ollama').split(',').map(s => s.trim());
+  return order.filter(p =>
+    (p === 'groq' && process.env.GROQ_API_KEY) ||
+    (p === 'gemini' && process.env.GEMINI_API_KEY) ||
+    (p === 'ollama' && process.env.OLLAMA_API_KEY)
+  );
 }
 
 async function post(url, headers, body, timeoutMs) {
@@ -26,6 +30,25 @@ const callers = {
     if (json) body.response_format = { type: 'json_object' };
     const d = await post(`${base}/chat/completions`, { Authorization: `Bearer ${process.env.GROQ_API_KEY}` }, body, timeoutMs);
     return d.choices?.[0]?.message?.content ?? '';
+  },
+  async gemini({ messages, json, temperature, maxTokens }, timeoutMs) {
+    const key = process.env.GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+    const contents = messages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+    const body = {
+      contents,
+      generationConfig: {
+        temperature,
+        maxOutputTokens: maxTokens,
+        ...(json ? { responseMimeType: 'application/json' } : {})
+      }
+    };
+    const d = await post(url, {}, body, timeoutMs);
+    return d.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   },
   async ollama({ messages, json, temperature, maxTokens }, timeoutMs) {
     const host = (process.env.OLLAMA_HOST || 'https://ollama.com').replace(/\/$/, '');

@@ -2,7 +2,14 @@
 import * as React from 'react';
 import type { Slide } from './mock-data';
 
-const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '';
+/** API origin. Empty = same origin (recommended: Nginx serves the site and proxies /api). */
+function apiBase() {
+  let b = ((import.meta.env.VITE_API_BASE ?? '') as string).trim().replace(/\/$/, '');
+  // Never call the API over plain HTTP from an HTTPS page (mixed content); upgrade it.
+  if (b.startsWith('http://') && typeof location !== 'undefined' && location.protocol === 'https:') b = 'https://' + b.slice(7);
+  return b;
+}
+export const BASE = apiBase();
 
 export interface Attempt { n: number; ok: boolean; stdout: string; stderr: string; exitCode: number; ms: number; problem?: string; part?: string }
 export interface LiveSnippet { id: string; name: string; location: string; kind: 'example' | 'exercise'; code: string; expected: string; actual: string; status: 'passed' | 'failed' | 'skipped'; attempts: Attempt[]; ms: number }
@@ -12,7 +19,7 @@ export interface LiveExercise { id: string; title: string; difficulty: string; s
 export interface CourseContent {
   live: boolean; provider?: string; runnerLang: string | null; language: string; version: string; generatedAt?: string; subtitle?: string; learned?: number;
   slides: Slide[]; examples: LiveExample[]; exercises: LiveExercise[];
-  quiz: { q: string; options: string[]; answer: number; explanation: string }[];
+  quiz: { q: string; code?: string; options: string[]; answer: number; explanation: string; category?: string; difficulty?: string }[];
   cheat: { title: string; items: string[][] }[];
   snippets: LiveSnippet[];
   summary: { total: number; verifiable: number; passed: number; failed: number; autoFixed: number; skipped: number };

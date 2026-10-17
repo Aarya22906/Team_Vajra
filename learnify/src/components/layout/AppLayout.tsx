@@ -11,7 +11,7 @@ import { cn, timeAgo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Logo, PageSkeleton } from '@/components/shared/common';
-import { Avatar, AvatarFallback } from '@/components/ui/controls';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/controls';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/misc';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tip } from '@/components/ui/tooltip';
@@ -61,7 +61,7 @@ function Sidebar({ collapsed, onToggle, onNavigate, mobile }: { collapsed: boole
       {!collapsed && (
         <div className="px-5 pt-4">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Trainer Portal
+            <span className="ping-dot h-1.5 w-1.5 rounded-full bg-emerald-400" /> Trainer Portal
           </span>
         </div>
       )}
@@ -77,7 +77,7 @@ function Sidebar({ collapsed, onToggle, onNavigate, mobile }: { collapsed: boole
                     className={cn('group flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-all',
                       collapsed && 'justify-center px-0',
                       active ? 'bg-primary text-white shadow-md shadow-indigo-500/30' : 'text-sidebar-fg hover:bg-sidebar-hover hover:text-slate-900')}>
-                    <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-white' : 'text-slate-400 group-hover:text-slate-900')} />
+                    <item.icon className={cn('h-[18px] w-[18px] shrink-0 transition-transform duration-300 group-hover:scale-110', active ? 'text-white' : 'text-slate-400 group-hover:text-slate-900')} />
                     {!collapsed && <span className="truncate">{item.label}</span>}
                   </NavLink>
                 );
@@ -110,7 +110,7 @@ function Notifications() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
           <Bell />
-          {unread > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-card">{unread}</span>}
+          {unread > 0 && <span key={unread} className="animate-in zoom-in-50 duration-300 absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-card">{unread}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[360px] p-0">
@@ -193,11 +193,17 @@ export function AppLayout() {
             <Button variant="gradient" size="icon" className="sm:hidden" onClick={() => navigate('/courses/new')} aria-label="New course"><Plus /></Button>
             <DropdownMenu>
               <DropdownMenuTrigger className="ml-1 rounded-full outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring" aria-label="Account menu">
-                <Avatar><AvatarFallback>{user?.initials ?? 'AM'}</AvatarFallback></Avatar>
+                <Avatar>
+                  {user?.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                  <AvatarFallback>{user?.initials ?? 'AM'}</AvatarFallback>
+                </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuLabel className="flex items-center gap-3 py-2 font-normal">
-                  <Avatar className="h-9 w-9"><AvatarFallback>{user?.initials ?? 'AM'}</AvatarFallback></Avatar>
+                  <Avatar className="h-9 w-9">
+                    {user?.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                    <AvatarFallback>{user?.initials ?? 'AM'}</AvatarFallback>
+                  </Avatar>
                   <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{user?.name}</span><span className="block truncate text-xs">{user?.email}</span></span>
                 </DropdownMenuLabel>
                 <div className="px-2 pb-1.5"><Badge variant="default">{user?.role} · {user?.institute}</Badge></div>
@@ -213,7 +219,7 @@ export function AppLayout() {
         </header>
 
         <main ref={mainRef} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
-          <div className={cn('mx-auto w-full animate-fade-up', fullBleed ? 'max-w-[1600px] p-3 sm:p-5' : 'max-w-[1400px] p-4 sm:p-6 lg:p-8')} key={pathname}>
+          <div className={cn('mx-auto w-full animate-fade-up', !fullBleed && 'page-enter', fullBleed ? 'max-w-[1600px] p-3 sm:p-5' : 'max-w-[1400px] p-4 sm:p-6 lg:p-8')} key={pathname}>
             <React.Suspense fallback={<PageSkeleton />}><Outlet /></React.Suspense>
           </div>
         </main>

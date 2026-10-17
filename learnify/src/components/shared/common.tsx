@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 export function Logo({ className, compact, light }: { className?: string; compact?: boolean; light?: boolean }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-9 w-9 shrink-0 rounded-[10px] shadow-md shadow-indigo-500/25" />
+      <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="LearnifyAI" className="h-10 w-10 shrink-0 rounded-[10px] shadow-md shadow-indigo-500/25 object-cover" />
       {!compact && (
         <div className="min-w-0 leading-tight">
           <div className={cn('text-[15px] font-bold tracking-tight', light ? 'text-white' : 'text-foreground')}>Learnify<span className="text-primary">AI</span></div>

@@ -178,40 +178,165 @@ export function Exercises({ content, online }: { content: CourseContent; online:
 /* ---------------- Quiz ---------------- */
 
 export function Quiz({ content }: { content: CourseContent }) {
-  const quiz = content.quiz;
+  const [questions, setQuestions] = React.useState(content.quiz);
   const [answers, setAnswers] = React.useState<Record<number, number>>({});
   const [reveal, setReveal] = React.useState(false);
-  const score = Object.entries(answers).filter(([q, a]) => quiz[+q].answer === a).length;
+  const [categoryFilter, setCategoryFilter] = React.useState<string>('All');
+  const [diffFilter, setDiffFilter] = React.useState<string>('All');
+
+  const categories = React.useMemo(() => {
+    const set = new Set<string>();
+    questions.forEach(q => { if (q.category) set.add(q.category); });
+    return ['All', ...Array.from(set)];
+  }, [questions]);
+
+  const filtered = questions.filter(q => {
+    if (categoryFilter !== 'All' && q.category !== categoryFilter) return false;
+    if (diffFilter !== 'All' && q.difficulty !== diffFilter) return false;
+    return true;
+  });
+
+  const score = Object.entries(answers).filter(([q, a]) => questions[+q]?.answer === a).length;
+
+  const addScenarioQuestion = () => {
+    const newQ = {
+      q: 'Scenario: How do you prevent a memory leak in a high-throughput Java 21 event-driven service?',
+      code: 'public class EventConsumer {\n    // ThreadLocal retaining large buffer\n    private static final ThreadLocal<byte[]> BUFFER = ThreadLocal.withInitial(() -> new byte[1024 * 1024]);\n    public void handle(Event e) { /* ... */ }\n}',
+      options: [
+        'Avoid ThreadLocal on Virtual Threads or ensure ThreadLocal.remove() is called immediately after use',
+        'Increase JVM max heap (-Xmx64G) and disable Garbage Collection',
+        'Convert all buffers into static constants',
+        'Restart the container every 10 minutes'
+      ],
+      answer: 0,
+      explanation: 'Virtual threads should not hold heavy ThreadLocal state without explicit cleanup because millions of virtual threads would exhaust heap memory rapidly.',
+      category: 'Concurrency',
+      difficulty: 'Advanced' as const
+    };
+    setQuestions(prev => [newQ, ...prev]);
+    toast.success('Generated new scenario question', { description: 'Added to the quiz pool' });
+  };
+
   return (
     <div className="space-y-4">
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="text-sm"><span className="font-semibold">{Object.keys(answers).length}/{quiz.length}</span> <span className="text-muted-foreground">answered</span>{reveal && <span className="ml-3 font-semibold text-primary">Score: {score}/{quiz.length}</span>}</div>
-        <div className="flex gap-2">
+      <Card className="flex flex-wrap items-center justify-between gap-4 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm">
+            <span className="font-bold text-foreground">{Object.keys(answers).length}/{questions.length}</span>{' '}
+            <span className="text-muted-foreground">Answered</span>
+            {reveal && <span className="ml-3 font-bold text-emerald-600 dark:text-emerald-400">Score: {score}/{questions.length} ({Math.round((score / (questions.length || 1)) * 100)}%)</span>}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="h-8 rounded-lg border bg-background px-2.5 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              {categories.map(c => <option key={c} value={c}>Category: {c}</option>)}
+            </select>
+
+            <select
+              value={diffFilter}
+              onChange={e => setDiffFilter(e.target.value)}
+              className="h-8 rounded-lg border bg-background px-2.5 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="All">All Difficulties</option>
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={addScenarioQuestion}>
+            <Sparkles className="mr-1.5 h-3.5 w-3.5 text-primary" /> + Add Scenario Question
+          </Button>
           <Button variant="outline" size="sm" onClick={() => { setAnswers({}); setReveal(false); }}>Reset</Button>
-          <Button variant="gradient" size="sm" onClick={() => setReveal(true)}><Eye /> Show answers & explanations</Button>
+          <Button variant="gradient" size="sm" onClick={() => setReveal(true)}>
+            <Eye className="mr-1.5 h-3.5 w-3.5" /> Show Answers & Explanations
+          </Button>
         </div>
       </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
-        {quiz.map((q, i) => (
-          <Card key={i} className="p-5">
-            <div className="text-xs font-semibold text-muted-foreground">Question {i + 1}</div>
-            <div className="mt-1 font-semibold">{q.q}</div>
-            <div className="mt-3 grid gap-2">
-              {q.options.map((o, k) => {
-                const chosen = answers[i] === k, correct = q.answer === k, show = reveal || answers[i] !== undefined;
-                return (
-                  <button key={k} onClick={() => setAnswers(a => ({ ...a, [i]: k }))}
-                    className={cn('flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition',
-                      show && correct && (chosen || reveal) ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' : show && chosen && !correct ? 'border-red-300 bg-red-50 dark:bg-red-500/10' : 'hover:border-primary/40')}>
-                    <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-md border text-xs font-semibold', chosen && 'border-primary bg-primary text-white')}>{String.fromCharCode(65 + k)}</span>{o}
-                    {show && correct && (chosen || reveal) && <Check className="ml-auto h-4 w-4 text-emerald-600" />}
-                  </button>
-                );
-              })}
-            </div>
-            {(reveal || answers[i] !== undefined) && <p className="mt-3 rounded-lg bg-muted/60 p-3 text-[13px] leading-relaxed text-muted-foreground animate-fade-up"><span className="font-semibold text-foreground">Explanation: </span>{q.explanation}</p>}
-          </Card>
-        ))}
+        {filtered.map((q, idx) => {
+          const originalIdx = questions.indexOf(q);
+          const i = originalIdx >= 0 ? originalIdx : idx;
+          const chosen = answers[i];
+
+          return (
+            <Card key={i} className="flex flex-col justify-between p-5 transition-shadow hover:shadow-md">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground">Q{i + 1}</span>
+                    {q.category && <Badge variant="secondary" className="text-[10px]">{q.category}</Badge>}
+                  </div>
+                  {q.difficulty && (
+                    <Badge variant={q.difficulty === 'Advanced' ? 'danger' : q.difficulty === 'Intermediate' ? 'info' : 'success'} className="text-[10px]">
+                      {q.difficulty}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="mt-2 font-semibold leading-snug">{q.q}</div>
+
+                {q.code && (
+                  <div className="mt-2.5 overflow-hidden rounded-lg bg-[#0F172A] p-3 font-mono text-xs text-[#E2E8F0]">
+                    <pre className="whitespace-pre-wrap">{q.code}</pre>
+                  </div>
+                )}
+
+                <div className="mt-3.5 grid gap-2">
+                  {q.options.map((o, k) => {
+                    const isSelected = chosen === k;
+                    const isCorrect = q.answer === k;
+                    const showFeedback = reveal || chosen !== undefined;
+
+                    return (
+                      <button
+                        key={k}
+                        onClick={() => setAnswers(a => ({ ...a, [i]: k }))}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition',
+                          showFeedback && isCorrect && (isSelected || reveal)
+                            ? 'border-emerald-500/60 bg-emerald-50 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-200'
+                            : showFeedback && isSelected && !isCorrect
+                            ? 'border-red-400 bg-red-50 text-red-950 dark:bg-red-950/30 dark:text-red-200'
+                            : isSelected
+                            ? 'border-primary bg-primary/5 text-foreground ring-1 ring-primary'
+                            : 'bg-card text-foreground hover:border-primary/40'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'grid h-6 w-6 shrink-0 place-items-center rounded-md border text-xs font-bold',
+                            isSelected ? 'border-primary bg-primary text-white' : 'border-muted-foreground/30 text-muted-foreground'
+                          )}
+                        >
+                          {String.fromCharCode(65 + k)}
+                        </span>
+                        <span className="min-w-0 flex-1 leading-snug">{o}</span>
+                        {showFeedback && isCorrect && (isSelected || reveal) && (
+                          <Check className="ml-auto h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {(reveal || chosen !== undefined) && (
+                <div className="mt-3.5 rounded-lg border border-primary/20 bg-primary/[0.04] p-3 text-xs leading-relaxed text-muted-foreground animate-fade-up">
+                  <span className="font-semibold text-primary">💡 Explanation: </span>
+                  {q.explanation}
+                </div>
+              )}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

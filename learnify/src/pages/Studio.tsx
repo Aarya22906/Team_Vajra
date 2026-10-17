@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tip } from '@/components/ui/tooltip';
 import { StatusBadge, Dot } from '@/components/shared/status';
-import { SlideCanvas, defaultBrand } from '@/components/shared/slide';
+import { SlideCanvas, defaultBrand, slideThemes, type Brand } from '@/components/shared/slide';
 import { ConfirmDialog } from '@/components/shared/common';
 import type { Slide } from '@/lib/mock-data';
 import type { CourseContent } from '@/lib/api';
@@ -43,6 +43,8 @@ function StudioInner() {
   const [saving, setSaving] = React.useState(false);
   const [preview, setPreview] = React.useState(false);
   const [tab, setTab] = React.useState(params.get('tab') ?? 'slides');
+  const [themeId, setThemeId] = React.useState<string>('indigo');
+  const activeTheme = React.useMemo(() => slideThemes.find(t => t.id === themeId) ?? defaultBrand, [themeId]);
 
   React.useEffect(() => {
     if (params.get('new')) {
@@ -73,6 +75,27 @@ function StudioInner() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Template / Theme selector */}
+          <div className="flex items-center gap-2 rounded-xl border bg-card px-3 py-1.5 shadow-sm text-xs font-semibold">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-muted-foreground hidden sm:inline">Theme:</span>
+            <select
+              value={themeId}
+              onChange={e => {
+                setThemeId(e.target.value);
+                const themeName = slideThemes.find(t => t.id === e.target.value)?.name ?? e.target.value;
+                toast.success(`Theme applied: ${themeName}`);
+              }}
+              className="bg-transparent font-bold text-foreground outline-none cursor-pointer"
+            >
+              {slideThemes.map(t => (
+                <option key={t.id} value={t.id} className="bg-popover text-popover-foreground">
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <Button variant="outline" onClick={() => setPreview(true)}><Eye /> Preview Slides</Button>
           <Button variant="outline" onClick={save} loading={saving}>{!saving && <Save />} Save</Button>
           <Button variant="outline" onClick={() => navigate(`/verification?course=${course.id}`)}><ShieldCheck /> Verify</Button>
@@ -92,7 +115,7 @@ function StudioInner() {
           </TabsList>
         </div>
 
-        <TabsContent value="slides"><SlidesEditor slides={slides} setSlides={s => { setSlides(s); setDirty(true); }} active={active} setActive={setActive} update={update} onPreview={() => setPreview(true)} content={content} online={!!online} course={course} /></TabsContent>
+        <TabsContent value="slides"><SlidesEditor slides={slides} setSlides={s => { setSlides(s); setDirty(true); }} active={active} setActive={setActive} update={update} onPreview={() => setPreview(true)} content={content} online={!!online} course={course} brand={activeTheme} /></TabsContent>
         <TabsContent value="code"><CodeExamples content={content} online={!!online} /></TabsContent>
         <TabsContent value="exercises"><Exercises content={content} online={!!online} /></TabsContent>
         <TabsContent value="quiz"><Quiz content={content} /></TabsContent>
@@ -100,16 +123,16 @@ function StudioInner() {
         <TabsContent value="diagrams"><Diagrams content={content} slides={slides} /></TabsContent>
       </Tabs>
 
-      <PreviewModal open={preview} onOpenChange={setPreview} slides={slides} start={active} />
+      <PreviewModal open={preview} onOpenChange={setPreview} slides={slides} start={active} brand={activeTheme} />
     </div>
   );
 }
 
 /* ---------------- Slides editor ---------------- */
 
-function SlidesEditor({ slides, setSlides, active, setActive, update, onPreview, content, online, course }: {
+function SlidesEditor({ slides, setSlides, active, setActive, update, onPreview, content, online, course, brand }: {
   slides: Slide[]; setSlides: (s: Slide[]) => void; active: number; setActive: (i: number) => void; update: (i: number, p: Partial<Slide>) => void; onPreview: () => void;
-  content: CourseContent; online: boolean; course: { title: string; language: string; level: string };
+  content: CourseContent; online: boolean; course: { title: string; language: string; level: string }; brand: Brand;
 }) {
   const [dragFrom, setDragFrom] = React.useState<number | null>(null);
   const [dragOver, setDragOver] = React.useState<number | null>(null);
@@ -149,7 +172,7 @@ function SlidesEditor({ slides, setSlides, active, setActive, update, onPreview,
   };
 
   const duplicate = () => { const s = [...slides]; s.splice(active + 1, 0, { ...slide, id: slide.id + '-copy-' + Date.now() }); setSlides(s); setActive(active + 1); toast.success('Slide duplicated'); };
-  const addSlide = () => { const s = [...slides]; s.splice(active + 1, 0, { id: 'new-' + Date.now(), title: 'New slide', layout: 'bullets', bullets: ['Click to edit this point', 'Add another point'], notes: '', status: 'none' }); setSlides(s); setActive(active + 1); };
+  const addSlide = () => { const s = [...slides]; s.splice(active + 1, 0, { id: 'new-' + Date.now(), title: 'New Architecture Slide', layout: 'grid', bullets: ['Key Principle: Description here', 'Best Practice: Production recommendation'], notes: 'Speaker explanation for this new slide...', status: 'none' }); setSlides(s); setActive(active + 1); };
 
   return (
     <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_320px]">
@@ -175,7 +198,7 @@ function SlidesEditor({ slides, setSlides, active, setActive, update, onPreview,
                 <span className="truncate">{s.title}</span>
                 <span className="ml-auto"><Dot status={s.status} /></span>
               </div>
-              <div className="pointer-events-none overflow-hidden rounded-md border shadow-sm"><SlideCanvas slide={s} index={i} total={slides.length} /></div>
+              <div className="pointer-events-none overflow-hidden rounded-md border shadow-sm"><SlideCanvas slide={s} index={i} total={slides.length} brand={brand} /></div>
             </li>
           ))}
         </ol>
@@ -190,15 +213,37 @@ function SlidesEditor({ slides, setSlides, active, setActive, update, onPreview,
               <span className="text-sm font-medium tabular-nums">Slide {active + 1} / {slides.length}</span>
               <Button variant="ghost" size="icon-sm" disabled={active === slides.length - 1} onClick={() => setActive(active + 1)} aria-label="Next slide"><ChevronRight /></Button>
             </div>
-            <div className="flex items-center gap-1">
-              <Badge variant="secondary" className="capitalize">{slide.layout.replace('-', ' ')} layout</Badge>
+            <div className="flex items-center gap-2">
+              {/* Interactive Layout Selector */}
+              <div className="flex items-center gap-1.5 text-xs font-semibold">
+                <span className="text-muted-foreground text-[11px]">Layout:</span>
+                <select
+                  value={slide.layout}
+                  onChange={e => {
+                    update(active, { layout: e.target.value as any });
+                    toast.success(`Layout set to ${e.target.value}`);
+                  }}
+                  className="h-7 rounded-md border bg-background px-2 text-xs font-bold text-foreground outline-none cursor-pointer focus:ring-1 focus:ring-primary"
+                >
+                  <option value="title">Hero Title</option>
+                  <option value="grid">Grid (4 Cards)</option>
+                  <option value="timeline">Timeline Process</option>
+                  <option value="code">Code & Concepts</option>
+                  <option value="two-col">Two-Column</option>
+                  <option value="callout">Golden Rule Callout</option>
+                  <option value="diagram">Architecture Diagram</option>
+                  <option value="summary">Summary Checklist</option>
+                  <option value="bullets">Bullets List</option>
+                </select>
+              </div>
+
               <Tip label="Duplicate"><Button variant="ghost" size="icon-sm" onClick={duplicate} aria-label="Duplicate slide"><Copy /></Button></Tip>
               <Tip label="Delete"><Button variant="ghost" size="icon-sm" onClick={() => setConfirmDelete(true)} disabled={slides.length < 2} aria-label="Delete slide"><Trash2 /></Button></Tip>
               <Tip label="Fullscreen"><Button variant="ghost" size="icon-sm" onClick={onPreview} aria-label="Fullscreen preview"><Maximize2 /></Button></Tip>
             </div>
           </div>
           <div className={cn('relative rounded-xl bg-[repeating-conic-gradient(hsl(var(--muted))_0_25%,transparent_0_50%)] bg-[length:16px_16px] p-2 sm:p-5', regen && 'pointer-events-none')}>
-            <SlideCanvas key={slide.id + slide.bullets.join()} slide={slide} index={active} total={slides.length} editable onChange={p => update(active, p)} className="shadow-xl ring-1 ring-black/5" />
+            <SlideCanvas key={slide.id + slide.bullets.join() + (brand.themeId || '')} slide={slide} index={active} total={slides.length} brand={brand} editable onChange={p => update(active, p)} className="shadow-xl ring-1 ring-black/5" />
             {regen && <div className="absolute inset-0 grid place-items-center rounded-xl bg-background/70 backdrop-blur-[2px]"><div className="flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-medium shadow-lg"><Sparkles className="h-4 w-4 animate-pulse text-primary" /> Regenerating slide {active + 1}…</div></div>}
           </div>
           <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"><Pencil className="h-3 w-3" /> Click the title or any bullet on the slide to edit it inline.</p>
@@ -252,7 +297,7 @@ function SlidesEditor({ slides, setSlides, active, setActive, update, onPreview,
 
 /* ---------------- Preview modal ---------------- */
 
-function PreviewModal({ open, onOpenChange, slides, start }: { open: boolean; onOpenChange: (o: boolean) => void; slides: Slide[]; start: number }) {
+function PreviewModal({ open, onOpenChange, slides, start, brand }: { open: boolean; onOpenChange: (o: boolean) => void; slides: Slide[]; start: number; brand: Brand }) {
   const [i, setI] = React.useState(start);
   const [notes, setNotes] = React.useState(false);
   React.useEffect(() => { if (open) setI(start); }, [open, start]);
@@ -280,7 +325,7 @@ function PreviewModal({ open, onOpenChange, slides, start }: { open: boolean; on
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center gap-2 px-2 sm:gap-6 sm:px-6">
           <Button size="icon" variant="ghost" className="shrink-0 text-white hover:bg-white/10 hover:text-white" disabled={i === 0} onClick={() => setI(i - 1)} aria-label="Previous"><ChevronLeft /></Button>
-          <div className="w-full max-w-[min(1200px,calc((100dvh-180px)*16/9))]"><SlideCanvas key={s.id} slide={s} index={i} total={slides.length} brand={defaultBrand} className="animate-fade-up shadow-2xl" /></div>
+          <div className="w-full max-w-[min(1200px,calc((100dvh-180px)*16/9))]"><SlideCanvas key={s.id} slide={s} index={i} total={slides.length} brand={brand} className="animate-fade-up shadow-2xl" /></div>
           <Button size="icon" variant="ghost" className="shrink-0 text-white hover:bg-white/10 hover:text-white" disabled={i === slides.length - 1} onClick={() => setI(i + 1)} aria-label="Next"><ChevronRight /></Button>
         </div>
         {notes && <div className="mx-auto mb-2 max-w-4xl rounded-lg bg-white/5 px-4 py-3 text-sm text-slate-300">{s.notes}</div>}

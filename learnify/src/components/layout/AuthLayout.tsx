@@ -16,7 +16,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <aside className="relative hidden overflow-hidden border-r bg-[#F3F5FF] p-12 lg:flex lg:flex-col">
         <NetworkBg />
         <div className="relative"><Link to="/"><Logo /></Link></div>
-        <div className="relative my-auto max-w-lg py-12">
+        <div className="auth-seq relative my-auto max-w-lg py-12">
           <span className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-xs font-medium text-muted-foreground"><span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">NEW</span> Built for trainers & institutes</span>
           <h1 className="mt-6 text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em]">Generate, verify and publish your next <span className="hl">lesson.</span></h1>
           <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">From a topic to a branded deck with runnable examples, tested exercises and a quiz. Nothing reaches your class until the code has passed.</p>
@@ -29,8 +29,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             ))}
           </ul>
           <div className="mt-10 rounded-2xl bg-[#0F1117] p-4 text-slate-300 shadow-xl">
-            <div className="flex items-center justify-between text-xs text-slate-500"><span className="font-mono">verify · java-oop-fundamentals</span><span className="text-emerald-400">● live</span></div>
-            <div className="mt-3 space-y-1.5 font-mono text-[12.5px]">
+            <div className="flex items-center justify-between text-xs text-slate-500"><span className="font-mono">verify · java-oop-fundamentals</span><span className="flex items-center gap-1.5 text-emerald-400"><span className="ping-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />live</span></div>
+            <div className="term-seq mt-3 space-y-1.5 font-mono text-[12.5px]">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> 13 snippets passed on Java 21.0.2</div>
               <div className="flex items-center gap-2 text-amber-300"><CircleArrowUp className="h-3.5 w-3.5" /> withdraw() auto-fixed on attempt 2</div>
               <div className="flex items-center gap-2 text-emerald-300"><ShieldCheck className="h-3.5 w-3.5" /> Verified ✓ 14/14 snippets</div>

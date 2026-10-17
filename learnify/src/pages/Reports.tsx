@@ -12,9 +12,10 @@ import { Dialog, DialogDescription, DialogTitle, SheetContent } from '@/componen
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/misc';
 import { EmptyState, PageHeader, PageSkeleton, useFakeLoad } from '@/components/shared/common';
 import { courses as seedCourses, reportDetail, snippets } from '@/lib/mock-data';
+import { mockContent } from '@/lib/content';
 import { api, useApi, type CourseContent } from '@/lib/api';
 import { useStore } from '@/lib/store';
-import { cn, formatDate, sleep } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 interface Report { id: string; courseId: string; course: string; date: string; passed: number; failed: number; total: number; runtime: string; status: string; durationS: number }
 void seedCourses;
@@ -136,9 +137,17 @@ function ReportDrawer({ r, content }: { r: Report; content?: CourseContent }) {
   const download = async () => {
     setDownloading(true);
     try {
-      if (content?.live && online) { const name = await api.download('report', { course: courses.find(c => c.id === r.courseId) ?? { title: r.course }, content }); toast.success('Verification report downloaded', { description: name }); }
-      else { await sleep(1000); toast.success('Verification report downloaded', { description: `verification-report-${r.courseId}.pdf · 312 KB (sample)` }); }
-    } catch (e) { toast.error('Download failed', { description: e instanceof Error ? e.message : undefined }); }
+      const course = courses.find(c => c.id === r.courseId) ?? { id: r.courseId, title: r.course, level: 'Beginner' as const, durationMin: 90, runtime: r.runtime, language: 'Java' as const, version: 1 };
+      const effectiveContent = content ?? mockContent(course.title, (course as any).level, (course as any).durationMin, (course as any).runtime, (course as any).language);
+      if (online) {
+        const name = await api.download('report', { course, content: effectiveContent });
+        toast.success('Verification report downloaded', { description: name });
+      } else {
+        toast.error('Download failed', { description: 'API server is offline' });
+      }
+    } catch (e) {
+      toast.error('Download failed', { description: e instanceof Error ? e.message : undefined });
+    }
     setDownloading(false);
   };
   return (

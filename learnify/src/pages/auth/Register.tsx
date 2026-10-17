@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { AuthLayout, GoogleIcon } from '@/components/layout/AuthLayout';
+import { GoogleSignInModal } from '@/components/auth/GoogleSignInModal';
+import { loginWithGoogle } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,9 +33,34 @@ export default function Register() {
   const [show, setShow] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+  const [googleModal, setGoogleModal] = React.useState(false);
   const s = strength(f.password);
 
   const set = (k: keyof typeof f) => (v: string) => { setF(x => ({ ...x, [k]: v })); if (errors[k]) setErrors(e => ({ ...e, [k]: '' })); };
+
+  const handleGoogleClick = async () => {
+    setGoogleLoading(true);
+    try {
+      const res = await loginWithGoogle();
+      if (res.ok) {
+        login(res.user.email, true, { name: res.user.name, avatar: res.user.avatar });
+        toast.success(`Welcome, ${res.user.name}`, { description: 'Signed in with Google' });
+        navigate('/dashboard');
+        return;
+      }
+      if (res.code === 'auth/popup-closed-by-user') {
+        return;
+      }
+      toast.error(res.error || 'Google sign-in was not completed');
+      setGoogleModal(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Google sign-in error');
+      setGoogleModal(true);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -49,7 +76,7 @@ export default function Register() {
     if (Object.values(e).some(Boolean)) return;
     setLoading(true);
     await sleep(1100);
-    login(f.email, true);
+    login(f.email, true, { name: f.name, role: f.role, institute: f.institute });
     toast.success('Account created', { description: `Welcome to LearnifyAI, ${f.name.split(' ')[0]}!` });
     navigate('/dashboard');
   };
@@ -58,10 +85,27 @@ export default function Register() {
     <AuthLayout>
       <h2 className="text-[28px] font-bold tracking-tight">Create your account</h2>
       <p className="mt-1.5 text-sm text-muted-foreground">Start building verified course material in minutes.</p>
-      <Button type="button" variant="outline" size="lg" className="mt-7 w-full text-sm" onClick={() => { login('aarav.mehta@techsummit.edu', true); toast.success('Signed up with Google'); navigate('/dashboard'); }}>
-        <GoogleIcon className="h-[18px] w-[18px]" /> Sign up with Google
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="mt-7 w-full text-sm"
+        onClick={handleGoogleClick}
+        loading={googleLoading}
+        disabled={googleLoading || loading}
+      >
+        {!googleLoading && <GoogleIcon className="h-[18px] w-[18px]" />} Sign up with Google
       </Button>
       <Divider>or</Divider>
+
+      <GoogleSignInModal
+        open={googleModal}
+        onOpenChange={setGoogleModal}
+        onSuccess={(gEmail, gName, gAvatar) => {
+          login(gEmail, true, { name: gName, avatar: gAvatar });
+          navigate('/dashboard');
+        }}
+      />
       <form onSubmit={submit} noValidate className="space-y-4">
         <div>
           <Label htmlFor="name">Full name</Label>

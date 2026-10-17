@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { Check, MessageSquare, MoreHorizontal, Send, Trash2, UserPlus, Users, Clock } from 'lucide-react';
+import { Check, MessageSquare, MoreHorizontal, Send, Trash2, UserPlus, Users, Clock, Database } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleIcon } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback } from '@/components/ui/controls';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/controls';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -14,6 +15,7 @@ import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/misc';
 import { ConfirmDialog, PageHeader } from '@/components/shared/common';
 import { comments as seedComments, courses, team as seedTeam, teamActivity } from '@/lib/mock-data';
 import { cn, timeAgo } from '@/lib/utils';
+import { BASE } from '@/lib/api';
 import { EMAIL_RE } from './auth/Login';
 
 type Role = 'Owner' | 'Editor' | 'Reviewer';
@@ -21,6 +23,8 @@ const ROLE: Record<Role, 'default' | 'info' | 'warning'> = { Owner: 'default', E
 
 export default function Team() {
   const [members, setMembers] = React.useState(seedTeam.map(m => ({ ...m, role: m.role as Role, pending: false })));
+  const [dbUsers, setDbUsers] = React.useState<any[]>([]);
+  const [authStats, setAuthStats] = React.useState<any>(null);
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [invite, setInvite] = React.useState({ email: '', role: 'Editor' as Role });
   const [inviteErr, setInviteErr] = React.useState('');
@@ -28,12 +32,99 @@ export default function Team() {
   const [comments, setComments] = React.useState(seedComments);
   const [reply, setReply] = React.useState('');
 
+  const loadDb = () => {
+    fetch(BASE + '/api/auth/users')
+      .then(r => (r.ok ? r.json() : ({} as { users?: never; stats?: never })))
+      .then(d => {
+        if (d.users) setDbUsers(d.users);
+        if (d.stats) setAuthStats(d.stats);
+      })
+      .catch(() => {});
+  };
+
+  React.useEffect(() => {
+    loadDb();
+  }, []);
+
   const shared = courses.slice(0, 5).map((c, i) => ({ ...c, collaborators: members.slice(0, 2 + (i % 3)) }));
 
   return (
     <div>
       <PageHeader eyebrow={<span className="inline-flex items-center gap-2">Account <Badge variant="slate" className="normal-case tracking-normal">Optional for MVP</Badge></span>} title="Team & Collaboration" description="Invite co-trainers and reviewers, share courses and review together."
         actions={<Button variant="gradient" onClick={() => { setInvite({ email: '', role: 'Editor' }); setInviteErr(''); setInviteOpen(true); }}><UserPlus /> Invite member</Button>} />
+
+      {/* Database Auth Status Card */}
+      <Card className="mb-6 border-primary/20 bg-primary/[0.02]">
+        <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+          <div className="flex items-center gap-2.5">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Database className="h-4 w-4" />
+            </div>
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                Database Login Records
+                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Sync
+                </span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {authStats?.totalUsers ?? dbUsers.length} total user accounts stored in <code>server/data/users.json</code> • {authStats?.totalLogins ?? 0} total login sessions in <code>logins.jsonl</code>
+              </CardDescription>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadDb}>Refresh Data</Button>
+        </CardHeader>
+        <CardContent>
+          {dbUsers.length > 0 ? (
+            <div className="divide-y divide-border/60 rounded-lg border bg-card overflow-hidden">
+              {dbUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between p-3 text-sm">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="h-8 w-8">
+                      {u.avatar && <AvatarImage src={u.avatar} alt={u.name} />}
+                      <AvatarFallback className="text-[10px] bg-primary text-white font-bold">
+                        {u.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 font-medium truncate">
+                        <span>{u.name}</span>
+                        {u.provider === 'google' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-semibold">
+                            <GoogleIcon className="h-3 w-3" /> Google Account
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-slate-500/10 text-muted-foreground px-1.5 py-0.5 rounded font-semibold">
+                            Email Auth
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
+                    <span className="hidden sm:inline bg-muted px-2 py-0.5 rounded">
+                      Logins: <strong className="text-foreground">{u.loginCount || 1}</strong>
+                    </span>
+                    <span className="hidden md:inline">
+                      Last: {timeAgo(u.lastLoginAt)}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      {u.id}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
+              No logins recorded yet. Sign in via Google or Email to see accounts saved here in real-time.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0 space-y-6">
